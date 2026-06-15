@@ -4,6 +4,7 @@ import {
   query,
   where,
   getDocs,
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from './config';
 import { Vote } from '@/types/game';
@@ -14,7 +15,7 @@ function votesCollection(roomId: string) {
 
 export async function addVote(
   roomId: string,
-  data: Omit<Vote, 'id'>
+  data: Vote
 ): Promise<string> {
   const docRef = await addDoc(votesCollection(roomId), data);
   return docRef.id;
@@ -27,7 +28,7 @@ export async function getVotesForRound(
   const q = query(votesCollection(roomId), where('round', '==', round));
   const snapshot = await getDocs(q);
   return snapshot.docs.map(
-    (docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Vote)
+    (docSnap) => (docSnap.data() as Vote)
   );
 }
 
@@ -39,7 +40,7 @@ export async function clearRoundVotes(
   const snapshot = await getDocs(q);
 
   const deletePromises = snapshot.docs.map((docSnap) =>
-    docSnap.ref.delete()
+    deleteDoc(docSnap.ref)
   );
   await Promise.all(deletePromises);
 }

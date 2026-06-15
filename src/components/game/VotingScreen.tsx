@@ -1,0 +1,186 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import { useGameContext } from '@/contexts/GameContext';
+import { useVotes } from '@/hooks/useVotes';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { addVote } from '@/lib/firebase/votes';
+import { processVotes } from '@/services/roomService';
+import { toast } from 'sonner';
+import { Users, AlertCircle, Check } from 'lucide-react';
+
+export const VotingScreen = () => {
+  const { room, players, currentPlayer, isHost } = useGameContext();
+  const { votes } = useVotes(room?.id || null, room?.currentRound || 1);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!room || !currentPlayer) return null;
+
+  const alivePlayers = players.filter(p => p.alive);
+  
+  // Check if I already voted in this round
+  useEffect(() => {
+    if (votes.some(v => v.voterId === currentPlayer.id)) {
+      setHasVoted(true);
+    } else {
+      setHasVoted(false);
+    }
+  }, [votes, currentPlayer.id]);
+
+  const handleVote = async () => {
+    if (!selectedPlayerId) return;
+    
+    try {
+      setIsSubmitting(true);
+      await addVote(room.id, {
+        voterId: currentPlayer.id,
+        targetId: selectedPlayerId,
+        round: room.currentRound
+      });
+      setHasVoted(true);
+      toast.success('Đã ghi nhận phiếu bầu!');
+    } catch (error) {
+      toast.error('Lỗi khi bỏ phiếu');
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleProcessResult = async () => {
+    try {
+      await processVotes(room.id, room.currentRound);
+    } catch (error) {
+      toast.error('Lỗi khi xử lý kết quả');
+    }
+  };
+
+  const isAllVoted = votes.length === alivePlayers.length;
+  // If dead, you can't vote, so expected votes is number of alive players? 
+  // Wait, alivePlayers = players.filter(p => p.alive). 
+  // Yes, dead players shouldn't vote.
+  const amIAlive = currentPlayer.alive;
+
+  // Auto transition when all votes are in (Host only)
+  useEffect(() => {
+    if (isHost && isAllVoted && room.status === 'voting') {
+      const timer = setTimeout(() => {
+        handleProcessResult();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHost, isAllVoted, room.id, room.status, room.currentRound]);
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex flex-col p-4 md:p-8 max-w-4xl mx-auto">
+      <div className="text-center mb-8 mt-4 animate-fade-in-up">
+        <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-500 flex items-center justify-center gap-3">
+          <AlertCircle className="w-8 h-8 text-red-500" />
+          BỎ PHIẾU LỌAI TRỪ
+        </h2>
+        <p className="text-slate-400 mt-2">
+          Hãy chọn ra người mà bạn nghi ngờ là Gián Điệp hoặc Mũ Trắng!
+        </p>
+      </div>
+
+      {/* Progress */}
+      <div className="mb-6 flex items-center justify-between bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <Users className="w-5 h-5 text-slate-400" />
+          <span className="text-slate-300 font-medium">Tiến độ bỏ phiếu</span>
+        </div>
+        <div className="text-xl font-bold font-mono">
+          <span className={isAllVoted ? "text-green-400" : "text-blue-400"}>{votes.length}</span>
+          <span className="text-slate-500">/{alivePlayers.length}</span>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto mb-8 custom-scrollbar">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {alivePlayers.map((player) => {
+            const isMe = player.id === currentPlayer.id;
+            const isSelected = selectedPlayerId === player.id;
+            const hasThisPlayerVoted = votes.some(v => v.voterId === player.id);
+
+            return (
+              <Card 
+                key={player.id}
+                onClick={() => {
+                  if (!hasVoted && amIAlive && !isMe) {
+                    setSelectedPlayerId(player.id);
+                  }
+                }}
+                className={`relative overflow-hidden transition-all duration-200 ${
+                  !amIAlive || hasVoted || isMe
+                    ? 'opacity-80 cursor-not-allowed bg-slate-900/50 border-slate-800'
+                    : 'cursor-pointer hover:bg-slate-800 border-slate-700'
+                } ${isSelected ? 'ring-2 ring-red-500 bg-red-500/10 border-red-500/50 scale-[1.02]' : ''}`}
+              >
+                <div className="p-6 flex flex-col items-center text-center gap-3">
+                  <Avatar className={`h-16 w-16 border-2 ${isSelected ? 'border-red-500' : 'border-slate-700'}`}>
+                    <AvatarFallback className="bg-slate-800 text-slate-300 text-lg">
+                      {player.name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold text-slate-200">
+                      {player.name}
+                    </p>
+                    {isMe && <p className="text-xs text-blue-400 mt-1">(Bạn)</p>}
+                  </div>
+                  
+                  {/* Indicators */}
+                  <div className="absolute top-2 right-2">
+                    {hasThisPlayerVoted ? (
+                      <div className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded border border-green-500/30 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Đã vote
+                      </div>
+                    ) : (
+                      <div className="bg-slate-800 text-slate-500 text-xs px-2 py-1 rounded">
+                        Đang suy nghĩ...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="sticky bottom-0 pb-4 pt-4 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent">
+        {amIAlive && !hasVoted ? (
+          <Button 
+            onClick={handleVote}
+            disabled={!selectedPlayerId || isSubmitting}
+            className={`w-full h-14 text-lg font-bold shadow-xl transition-all ${
+              selectedPlayerId 
+                ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-500/25' 
+                : 'bg-slate-800 text-slate-500'
+            }`}
+          >
+            {selectedPlayerId ? 'Chốt Phiếu Bầu' : 'Chọn một người để loại'}
+          </Button>
+        ) : (
+          <div className="text-center p-4 rounded-xl bg-slate-900 border border-slate-800">
+            <p className="text-slate-300 flex items-center justify-center gap-2">
+              {isAllVoted ? (
+                <span className="text-green-400 flex items-center gap-2">
+                  <Check className="w-5 h-5" /> Đã đủ phiếu! Đang xử lý kết quả...
+                </span>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                  {amIAlive ? 'Đã bỏ phiếu. ' : 'Bạn đã chết. '}Đang đợi những người khác...
+                </>
+              )}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

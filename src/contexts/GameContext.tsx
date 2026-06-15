@@ -1,183 +1,94 @@
-'use client';
+"use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useMemo,
-  type ReactNode,
-} from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Room, Player } from '@/types/game';
 import { useRoom } from '@/hooks/useRoom';
 import { usePlayers } from '@/hooks/usePlayers';
-import { useVotes } from '@/hooks/useVotes';
-import { useGameActions } from '@/hooks/useGameActions';
-import type { Room, Player, Vote } from '@/types/game';
+import { getRoomByCode } from '@/lib/firebase/rooms';
 
-// ---------------------------------------------------------------------------
-// Context value type
-// ---------------------------------------------------------------------------
-
-interface GameContextValue {
-  // Room state
+interface GameContextType {
   room: Room | null;
-  roomLoading: boolean;
-  roomError: string | null;
-
-  // Players state
   players: Player[];
-  playersLoading: boolean;
-  playersError: string | null;
-
-  // Votes state (current round)
-  votes: Vote[];
-  votesLoading: boolean;
-  votesError: string | null;
-
-  // Current player
   currentPlayerId: string | null;
+  setCurrentPlayerId: (id: string | null) => void;
+  loading: boolean;
+  error: Error | null;
+  isHost: boolean;
   currentPlayer: Player | null;
-  setCurrentPlayerId: (id: string) => void;
-
-  // Game actions
-  revealCard: () => Promise<void>;
-  nextSpeaker: () => Promise<void>;
-  castVote: (targetId: string) => Promise<void>;
 }
 
-// ---------------------------------------------------------------------------
-// Context
-// ---------------------------------------------------------------------------
+const GameContext = createContext<GameContextType | undefined>(undefined);
 
-const GameContext = createContext<GameContextValue | null>(null);
+export const GameProvider = ({ 
+  children,
+  roomCode 
+}: { 
+  children: React.ReactNode;
+  roomCode: string;
+}) => {
+  const [roomId, setRoomId] = useState<string | undefined>(undefined);
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
 
-// ---------------------------------------------------------------------------
-// Provider
-// ---------------------------------------------------------------------------
-
-interface GameProviderProps {
-  roomId: string;
-  children: ReactNode;
-}
-
-export function GameProvider({ roomId, children }: GameProviderProps) {
-  // ---- Room data ----------------------------------------------------------
-  const {
-    room,
-    loading: roomLoading,
-    error: roomError,
-  } = useRoom(roomId);
-
-  // ---- Players data -------------------------------------------------------
-  const {
-    players,
-    loading: playersLoading,
-    error: playersError,
-  } = usePlayers(roomId);
-
-  // ---- Current player ID from localStorage --------------------------------
-  const storageKey = room ? `spy-game-player-${room.code}` : null;
-
-  const [currentPlayerId, setCurrentPlayerIdState] = useState<string | null>(
-    () => {
-      if (typeof window === 'undefined') return null;
-      if (!storageKey) return null;
-      return localStorage.getItem(storageKey);
-    }
-  );
-
-  // Re-sync from localStorage when the storageKey (room code) changes
+  // Get room ID from code
   useEffect(() => {
-    if (typeof window === 'undefined' || !storageKey) return;
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
-      setCurrentPlayerIdState(stored);
+    const fetchRoomId = async () => {
+      try {
+        const r = await getRoomByCode(roomCode);
+        if (r) {
+          setRoomId(r.id);
+        }
+      } catch (e) {
+        console.error("Error fetching room ID:", e);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    if (roomCode) {
+      fetchRoomId();
     }
-  }, [storageKey]);
+  }, [roomCode]);
 
-  const setCurrentPlayerId = (id: string) => {
-    setCurrentPlayerIdState(id);
-    if (storageKey && typeof window !== 'undefined') {
-      localStorage.setItem(storageKey, id);
+  // Read current player ID from local storage (or setup)
+  useEffect(() => {
+    const storedId = localStorage.getItem(`spy_game_player_${roomCode}`);
+    if (storedId) {
+      setCurrentPlayerId(storedId);
     }
-  };
+  }, [roomCode]);
 
-  // ---- Derive current player from players list ----------------------------
-  const currentPlayer = useMemo(() => {
-    if (!currentPlayerId) return null;
-    return players.find((p) => p.id === currentPlayerId) ?? null;
-  }, [players, currentPlayerId]);
+  useEffect(() => {
+    if (currentPlayerId) {
+      localStorage.setItem(`spy_game_player_${roomCode}`, currentPlayerId);
+    }
+  }, [currentPlayerId, roomCode]);
 
-  // ---- Votes data (current round) -----------------------------------------
-  const currentRound = room?.currentRound ?? 1;
+  const { room, loading: roomLoading, error: roomError } = useRoom(roomId);
+  const { players, loading: playersLoading, error: playersError } = usePlayers(roomId);
 
-  const {
-    votes,
-    loading: votesLoading,
-    error: votesError,
-  } = useVotes(roomId, currentRound);
-
-  // ---- Game actions -------------------------------------------------------
-  const { revealCard, nextSpeaker, castVote } = useGameActions({
-    roomId,
-    currentPlayerId,
-    room,
-    players,
-  });
-
-  // ---- Assemble context value ---------------------------------------------
-  const value = useMemo<GameContextValue>(
-    () => ({
-      room,
-      roomLoading,
-      roomError,
-      players,
-      playersLoading,
-      playersError,
-      votes,
-      votesLoading,
-      votesError,
-      currentPlayerId,
-      currentPlayer,
-      setCurrentPlayerId,
-      revealCard,
-      nextSpeaker,
-      castVote,
-    }),
-    [
-      room,
-      roomLoading,
-      roomError,
-      players,
-      playersLoading,
-      playersError,
-      votes,
-      votesLoading,
-      votesError,
-      currentPlayerId,
-      currentPlayer,
-      // setCurrentPlayerId is stable (defined in component body but only changes with storageKey)
-      revealCard,
-      nextSpeaker,
-      castVote,
-    ]
-  );
+  const isHost = room?.hostId === currentPlayerId;
+  const currentPlayer = players.find(p => p.id === currentPlayerId) || null;
 
   return (
-    <GameContext.Provider value={value}>
+    <GameContext.Provider value={{
+      room,
+      players,
+      currentPlayerId,
+      setCurrentPlayerId,
+      loading: initialLoading || roomLoading || playersLoading,
+      error: roomError || playersError,
+      isHost,
+      currentPlayer
+    }}>
       {children}
     </GameContext.Provider>
   );
-}
+};
 
-// ---------------------------------------------------------------------------
-// Consumer hook
-// ---------------------------------------------------------------------------
-
-export function useGame(): GameContextValue {
+export const useGameContext = () => {
   const context = useContext(GameContext);
-  if (!context) {
-    throw new Error('useGame must be used within a <GameProvider>');
+  if (context === undefined) {
+    throw new Error('useGameContext must be used within a GameProvider');
   }
   return context;
-}
+};

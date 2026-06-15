@@ -1,94 +1,59 @@
-'use client';
+import { createRoom as fbCreateRoom, getRoomByCode } from '@/lib/firebase/rooms';
+import { addPlayer } from '@/lib/firebase/players';
+import { Player } from '@/types/game';
+import { toast } from 'sonner';
 
-import { useCallback } from 'react';
-import { updateRoomData } from '@/lib/firebase/rooms';
-import { updatePlayerData } from '@/lib/firebase/players';
-import { addVote, hasPlayerVoted } from '@/lib/firebase/votes';
-import type { Room, Player, GameStatus } from '@/types/game';
+export const useGameActions = () => {
+  const createRoom = async (hostName: string): Promise<{ code: string, roomId: string, playerId: string }> => {
+    const hostId = crypto.randomUUID();
+    const code = await fbCreateRoom(hostId);
+    
+    // Immediately after creating, we need to know the roomId.
+    // In our current fbCreateRoom, it sets doc and returns code, but we don't know the roomId it generated unless we change it.
+    // Let's get the room by code to find its ID.
+    const room = await getRoomByCode(code);
+    if (!room) throw new Error("Failed to create room");
 
-interface UseGameActionsParams {
-  roomId: string | null;
-  currentPlayerId: string | null;
-  room: Room | null;
-  players: Player[];
-}
+    const hostPlayer: Player = {
+      id: hostId,
+      name: hostName,
+      role: null,
+      alive: true,
+      hasRevealedCard: false,
+      speakingOrder: 0,
+      joinedAt: Date.now(),
+    };
 
-interface UseGameActionsReturn {
-  revealCard: () => Promise<void>;
-  nextSpeaker: () => Promise<void>;
-  castVote: (targetId: string) => Promise<void>;
-}
+    await addPlayer(room.id, hostPlayer);
 
-export function useGameActions({
-  roomId,
-  currentPlayerId,
-  room,
-  players,
-}: UseGameActionsParams): UseGameActionsReturn {
-  const revealCard = useCallback(async () => {
-    if (!roomId || !currentPlayerId) {
-      throw new Error('Missing roomId or currentPlayerId');
+    return { code, roomId: room.id, playerId: hostId };
+  };
+
+  const joinRoom = async (code: string, playerName: string): Promise<{ roomId: string, playerId: string }> => {
+    const room = await getRoomByCode(code.toUpperCase());
+    if (!room) {
+      throw new Error("Không tìm thấy phòng");
     }
 
-    await updatePlayerData(roomId, currentPlayerId, {
-      hasRevealedCard: true,
-    });
-  }, [roomId, currentPlayerId]);
-
-  const nextSpeaker = useCallback(async () => {
-    if (!roomId || !room) {
-      throw new Error('Missing roomId or room data');
+    if (room.status !== "waiting") {
+      throw new Error("Phòng đã bắt đầu chơi");
     }
 
-    const alivePlayers = players
-      .filter((p) => p.alive)
-      .sort((a, b) => a.speakingOrder - b.speakingOrder);
+    const playerId = crypto.randomUUID();
+    const player: Player = {
+      id: playerId,
+      name: playerName,
+      role: null,
+      alive: true,
+      hasRevealedCard: false,
+      speakingOrder: 0,
+      joinedAt: Date.now(),
+    };
 
-    if (alivePlayers.length === 0) {
-      return;
-    }
+    await addPlayer(room.id, player);
 
-    const nextIndex = room.currentSpeakerIndex + 1;
+    return { roomId: room.id, playerId };
+  };
 
-    if (nextIndex >= alivePlayers.length) {
-      // All speakers have spoken — transition to voting phase
-      await updateRoomData(roomId, {
-        status: 'voting' as GameStatus,
-        currentSpeakerIndex: 0,
-      });
-    } else {
-      // Advance to next speaker
-      await updateRoomData(roomId, {
-        currentSpeakerIndex: nextIndex,
-      });
-    }
-  }, [roomId, room, players]);
-
-  const castVote = useCallback(
-    async (targetId: string) => {
-      if (!roomId || !currentPlayerId || !room) {
-        throw new Error('Missing roomId, currentPlayerId, or room data');
-      }
-
-      // Check if the player has already voted this round
-      const alreadyVoted = await hasPlayerVoted(
-        roomId,
-        currentPlayerId,
-        room.currentRound
-      );
-
-      if (alreadyVoted) {
-        throw new Error('You have already voted this round');
-      }
-
-      await addVote(roomId, {
-        voterId: currentPlayerId,
-        targetId,
-        round: room.currentRound,
-      });
-    },
-    [roomId, currentPlayerId, room]
-  );
-
-  return { revealCard, nextSpeaker, castVote };
-}
+  return { createRoom, joinRoom };
+};

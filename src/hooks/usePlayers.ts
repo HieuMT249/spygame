@@ -1,66 +1,40 @@
-'use client';
-
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, orderBy, query, FirestoreError } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import type { Player } from '@/types/game';
+import { Player } from '@/types/game';
 
-interface UsePlayersReturn {
-  players: Player[];
-  loading: boolean;
-  error: string | null;
-}
-
-export function usePlayers(roomId: string | null): UsePlayersReturn {
+export const usePlayers = (roomId: string | undefined) => {
   const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     if (!roomId) {
       setPlayers([]);
       setLoading(false);
-      setError(null);
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
     const playersRef = collection(db, 'rooms', roomId, 'players');
-    const playersQuery = query(playersRef, orderBy('speakingOrder', 'asc'));
+    // We order by joinedAt so Lobby list is stable
+    const q = query(playersRef, orderBy('joinedAt', 'asc'));
 
     const unsubscribe = onSnapshot(
-      playersQuery,
+      q,
       (snapshot) => {
-        const playersList: Player[] = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name,
-            role: data.role ?? null,
-            alive: data.alive ?? true,
-            hasRevealedCard: data.hasRevealedCard ?? false,
-            speakingOrder: data.speakingOrder ?? 0,
-            joinedAt: data.joinedAt?.toDate?.() ?? new Date(),
-          } satisfies Player;
-        });
-
-        setPlayers(playersList);
+        const playersData = snapshot.docs.map(doc => doc.data() as Player);
+        setPlayers(playersData);
         setLoading(false);
       },
-      (err: FirestoreError) => {
-        console.error('[usePlayers] Firestore error:', err);
-        setError(err.message);
-        setPlayers([]);
+      (err) => {
+        console.error("Error listening to players:", err);
+        setError(err);
         setLoading(false);
       }
     );
 
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [roomId]);
 
   return { players, loading, error };
-}
+};

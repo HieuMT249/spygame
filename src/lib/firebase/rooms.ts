@@ -1,49 +1,54 @@
 import {
   collection,
-  addDoc,
-  query,
-  where,
-  getDocs,
   doc,
+  setDoc,
+  getDoc,
   updateDoc,
   deleteDoc,
-} from 'firebase/firestore';
-import { db } from './config';
-import { Room } from '@/types/game';
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "./config";
+import { Room } from "@/types/game";
+import { generateRoomCode } from "@/utils/generateCode";
 
-const ROOMS_COLLECTION = 'rooms';
+export const createRoom = async (hostId: string): Promise<string> => {
+  const code = generateRoomCode();
+  const roomRef = doc(collection(db, "rooms"));
+  
+  const newRoom: Partial<Room> = {
+    id: roomRef.id,
+    code,
+    status: "waiting",
+    citizenWord: "",
+    spyWord: "",
+    currentRound: 0,
+    currentSpeakerIndex: 0,
+    hostId,
+    createdAt: Date.now(),
+    winner: null,
+  };
 
-export async function createRoom(data: Omit<Room, 'id'>): Promise<string> {
-  const docRef = await addDoc(collection(db, ROOMS_COLLECTION), data);
-  return docRef.id;
-}
+  await setDoc(roomRef, newRoom);
+  return code;
+};
 
-export async function getRoomByCode(
-  code: string
-): Promise<{ id: string; data: Room } | null> {
-  const q = query(
-    collection(db, ROOMS_COLLECTION),
-    where('code', '==', code)
-  );
+export const getRoomByCode = async (code: string): Promise<Room | null> => {
+  // We need to query rooms by code. Wait, querying requires `query` and `where`.
+  // Let's import those.
+  const { query, where, getDocs } = await import("firebase/firestore");
+  const q = query(collection(db, "rooms"), where("code", "==", code));
   const snapshot = await getDocs(q);
+  
+  if (snapshot.empty) return null;
+  return snapshot.docs[0].data() as Room;
+};
 
-  if (snapshot.empty) {
-    return null;
-  }
-
-  const docSnap = snapshot.docs[0];
-  return { id: docSnap.id, data: { id: docSnap.id, ...docSnap.data() } as Room };
-}
-
-export async function updateRoomData(
-  roomId: string,
-  data: Partial<Room>
-): Promise<void> {
-  const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+export const updateRoom = async (roomId: string, data: Partial<Room>): Promise<void> => {
+  const roomRef = doc(db, "rooms", roomId);
   await updateDoc(roomRef, data);
-}
+};
 
-export async function deleteRoom(roomId: string): Promise<void> {
-  const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+export const deleteRoom = async (roomId: string): Promise<void> => {
+  const roomRef = doc(db, "rooms", roomId);
   await deleteDoc(roomRef);
-}
+};

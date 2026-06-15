@@ -36,11 +36,10 @@ export function useVotes(roomId: string | null, round: number): UseVotesReturn {
         const votesList: Vote[] = snapshot.docs.map((doc) => {
           const data = doc.data();
           return {
-            id: doc.id,
             voterId: data.voterId,
             targetId: data.targetId,
             round: data.round,
-          } satisfies Vote;
+          } as Vote;
         });
 
         setVotes(votesList);
