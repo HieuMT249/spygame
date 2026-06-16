@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { advanceGameAfterElimination } from '@/services/roomService';
 import { updateRoom } from '@/lib/firebase/rooms';
-import { Ghost, User, HelpCircle, Skull, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Ghost, User, HelpCircle, Skull, ChevronRight, AlertTriangle, HatGlasses } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const ResultScreen = () => {
@@ -40,7 +40,7 @@ export const ResultScreen = () => {
   const getRoleIcon = (role: string | null) => {
     if (role === 'citizen') return <User className="w-16 h-16 text-blue-400" />;
     if (role === 'spy') return <Ghost className="w-16 h-16 text-red-400" />;
-    if (role === 'white') return <HelpCircle className="w-16 h-16 text-slate-300" />;
+    if (role === 'white') return <HatGlasses className="w-16 h-16 text-slate-300" />;
     return null;
   };
 

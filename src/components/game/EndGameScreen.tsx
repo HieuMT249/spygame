@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { resetRoom } from '@/services/roomService';
-import { Ghost, User, HelpCircle, Trophy, RotateCcw, Crown } from 'lucide-react';
+import { Ghost, User, HelpCircle, Trophy, RotateCcw, Crown, HatGlasses } from 'lucide-react';
+import { Confetti } from '@/components/ui/confetti';
 import { toast } from 'sonner';
 import type { PlayerRole } from '@/types/game';
 
@@ -30,7 +31,7 @@ const WINNER_CONFIG = {
     sublabel: 'Mũ Trắng đã đoán đúng từ khoá bí mật!',
     gradient: 'from-slate-500 to-slate-300',
     glow: 'shadow-slate-400/30',
-    icon: <HelpCircle className="w-16 h-16 text-white" />,
+    icon: <HatGlasses className="w-16 h-16 text-white" />,
   },
 };
 
@@ -85,6 +86,7 @@ export const EndGameScreen = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center p-4 pb-8">
+      <Confetti active={showPlayers} />
 
       {/* Winner Banner */}
       <div className={`w-full max-w-md mt-8 mb-6 rounded-3xl bg-gradient-to-br ${config.gradient} shadow-2xl ${config.glow} p-8 text-center animate-fade-in-up`}>

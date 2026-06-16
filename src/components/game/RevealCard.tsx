@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { updatePlayer } from '@/lib/firebase/players';
 import { updateRoom } from '@/lib/firebase/rooms';
-import { Eye, EyeOff, User, Ghost, HelpCircle } from 'lucide-react';
+import { Eye, EyeOff, User, Ghost, HelpCircle, HatGlasses } from 'lucide-react';
 
 export const RevealCard = () => {
   const { room, players, currentPlayer, isHost } = useGameContext();
@@ -49,7 +49,7 @@ export const RevealCard = () => {
   const getRoleIcon = () => {
     if (currentPlayer.role === 'citizen') return <User className="w-16 h-16 text-blue-400" />;
     if (currentPlayer.role === 'spy') return <Ghost className="w-16 h-16 text-red-400" />;
-    return <HelpCircle className="w-16 h-16 text-slate-300" />;
+    return <HatGlasses className="w-16 h-16 text-slate-300" />;
   };
 
   const getRoleName = () => {

@@ -53,6 +53,7 @@ export const GameProvider = ({
   useEffect(() => {
     const storedId = localStorage.getItem(`spy_game_player_${roomCode}`);
     if (storedId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentPlayerId(storedId);
     }
   }, [roomCode]);
