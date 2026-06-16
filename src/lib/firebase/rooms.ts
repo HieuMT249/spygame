@@ -48,6 +48,19 @@ export const updateRoom = async (roomId: string, data: Partial<Room>): Promise<v
   await updateDoc(roomRef, data);
 };
 
+export const deleteRoomField = async (roomId: string, field: string): Promise<void> => {
+  const { deleteField } = await import("firebase/firestore");
+  const roomRef = doc(db, "rooms", roomId);
+  await updateDoc(roomRef, { [field]: deleteField() });
+};
+
+export const getRoomById = async (roomId: string): Promise<Room | null> => {
+  const roomRef = doc(db, "rooms", roomId);
+  const snapshot = await getDoc(roomRef);
+  if (!snapshot.exists()) return null;
+  return snapshot.data() as Room;
+};
+
 export const deleteRoom = async (roomId: string): Promise<void> => {
   const roomRef = doc(db, "rooms", roomId);
   await deleteDoc(roomRef);

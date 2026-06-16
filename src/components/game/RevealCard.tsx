@@ -21,7 +21,7 @@ export const RevealCard = () => {
   useEffect(() => {
     if (isHost && allRevealed && room.status === 'revealing') {
       const timer = setTimeout(() => {
-        updateRoom(room.id, { status: 'discussion' });
+        updateRoom(room.id, { status: 'voting' });
       }, 3000); // Wait 3 seconds after the last person reveals
       return () => clearTimeout(timer);
     }
@@ -70,7 +70,7 @@ export const RevealCard = () => {
         <h2 className="text-3xl font-bold text-slate-100 mb-2">Xem Thẻ Của Bạn</h2>
         <p className="text-slate-400">
           {allRevealed 
-            ? "Mọi người đã xem xong. Chuẩn bị thảo luận..." 
+            ? "Mọi người đã xem xong. Chuẩn bị bỏ phiếu..." 
             : "Vui lòng giữ bí mật thẻ của mình"}
         </p>
       </div>
@@ -127,7 +127,7 @@ export const RevealCard = () => {
           <div className="text-center w-full p-4 rounded-xl bg-slate-900/50 border border-slate-800">
             <p className="text-slate-300 flex items-center justify-center gap-2">
               {allRevealed ? (
-                <span className="text-green-400">Chuẩn bị chuyển sang thảo luận...</span>
+                <span className="text-green-400">Chuẩn bị chuyển sang bỏ phiếu...</span>
               ) : (
                 <>
                   <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />

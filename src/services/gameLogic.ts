@@ -93,6 +93,14 @@ export function assignRoles(
   return assignments;
 }
 
+/**
+ * Generate a random turn order for alive players.
+ * Returns an array of player IDs in random sequence.
+ */
+export function generateTurnOrder(players: Player[]): string[] {
+  return shuffle(players.filter(p => p.alive)).map(p => p.id);
+}
+
 // ── Speaking order ───────────────────────────────────────────────────────────
 
 /**

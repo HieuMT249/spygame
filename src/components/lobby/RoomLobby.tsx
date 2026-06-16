@@ -3,16 +3,20 @@
 import { useGameContext } from '@/contexts/GameContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy, Users, Crown, Check, Link as LinkIcon } from 'lucide-react';
+import { Copy, Users, Crown, Check, Link as LinkIcon, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { startGame } from '@/services/roomService';
+import { startGame, disbandRoom } from '@/services/roomService';
 
 export const RoomLobby = () => {
   const { room, players, isHost, currentPlayer } = useGameContext();
+  const router = useRouter();
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isDisbanding, setIsDisbanding] = useState(false);
+  const [confirmDisband, setConfirmDisband] = useState(false);
 
   if (!room) return null;
 
@@ -38,8 +42,27 @@ export const RoomLobby = () => {
     }
     try {
       await startGame(room.id);
-    } catch (error: any) {
-      toast.error(error.message || 'Lỗi khi bắt đầu game');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Lỗi khi bắt đầu game';
+      toast.error(msg);
+    }
+  };
+
+  const handleDisband = async () => {
+    if (!confirmDisband) {
+      setConfirmDisband(true);
+      setTimeout(() => setConfirmDisband(false), 3000);
+      return;
+    }
+    try {
+      setIsDisbanding(true);
+      await disbandRoom(room.id);
+      toast.success('Đã giải tán phòng');
+      router.push('/');
+    } catch (error) {
+      toast.error('Lỗi khi giải tán phòng');
+      setIsDisbanding(false);
+      setConfirmDisband(false);
     }
   };
 
@@ -140,17 +163,32 @@ export const RoomLobby = () => {
       {/* Footer / Start Button */}
       <div className="pt-8 pb-4 sticky bottom-0 bg-slate-950/80 backdrop-blur-xl border-t border-slate-800 -mx-4 px-4 md:mx-0 md:px-0 md:bg-transparent md:backdrop-blur-none md:border-t-0 z-10">
         {isHost ? (
-          <Button 
-            onClick={handleStartGame}
-            disabled={players.length < 4}
-            className={`w-full md:w-auto md:min-w-[200px] mx-auto flex h-14 text-lg font-bold shadow-xl ${
-              players.length >= 4 
-                ? 'bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 text-white shadow-blue-500/25' 
-                : 'bg-slate-800 text-slate-400'
-            }`}
-          >
-            Bắt Đầu Game
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={handleStartGame}
+              disabled={players.length < 4}
+              className={`w-full h-14 text-lg font-bold shadow-xl ${
+                players.length >= 4
+                  ? 'bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 text-white shadow-blue-500/25'
+                  : 'bg-slate-800 text-slate-400'
+              }`}
+            >
+              Bắt Đầu Game
+            </Button>
+            <Button
+              onClick={handleDisband}
+              disabled={isDisbanding}
+              variant="ghost"
+              className={`w-full h-10 text-sm font-medium transition-all ${
+                confirmDisband
+                  ? 'text-red-400 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20'
+                  : 'text-slate-500 hover:text-red-400 hover:bg-red-500/10'
+              }`}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {confirmDisband ? 'Bấm lần nữa để xác nhận giải tán' : 'Giải Tán Phòng'}
+            </Button>
+          </div>
         ) : (
           <div className="text-center p-4 rounded-xl bg-slate-900 border border-slate-800">
             <p className="text-slate-400 flex items-center justify-center gap-2">

@@ -7,43 +7,29 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { advanceGameAfterElimination } from '@/services/roomService';
-import { getMostVotedPlayer } from '@/utils/helpers';
+import { updateRoom } from '@/lib/firebase/rooms';
 import { Ghost, User, HelpCircle, Skull, ChevronRight, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const ResultScreen = () => {
   const { room, players, isHost } = useGameContext();
-  // Lấy votes từ round vừa rồi
   const { votes } = useVotes(room?.id || null, room?.currentRound || 1);
   const [isRevealing, setIsRevealing] = useState(true);
 
-  if (!room) return null;
-
-  // Tính kết quả vote
-  const mostVoted = getMostVotedPlayer(votes, players);
-  
-  // Actually, room.eliminatedPlayerId contains the ID of the person eliminated
-  const eliminatedPlayer = players.find(p => p.id === room.eliminatedPlayerId);
-
-  // Auto transition for role reveal effect
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsRevealing(false);
-    }, 2000); // 2s suspense
+    const timer = setTimeout(() => setIsRevealing(false), 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  if (!room) return null;
+
+  const eliminatedPlayer = players.find(p => p.id === room.eliminatedPlayerId);
 
   const handleNext = async () => {
     try {
       if (eliminatedPlayer?.role === 'white') {
-        // If White Hat is eliminated, we transition to White Hat guess phase
-        // Wait, the processVotes already set status to "result". 
-        // Then from "result", if it's White Hat, we should go to "whitehat-guess".
-        // Let's import updateRoom for this.
-        const { updateRoom } = await import('@/lib/firebase/rooms');
         await updateRoom(room.id, { status: 'whitehat-guess' });
       } else {
-        // Otherwise, advance game
         await advanceGameAfterElimination(room.id);
       }
     } catch (error) {
@@ -82,13 +68,13 @@ export const ResultScreen = () => {
 
       <div className="w-full max-w-md flex-1 flex flex-col items-center justify-center">
         {!eliminatedPlayer ? (
-           <Card className="w-full bg-slate-900 border-slate-800 p-8 text-center shadow-2xl animate-fade-in-up">
+          <Card className="w-full bg-slate-900 border-slate-800 p-8 text-center shadow-2xl animate-fade-in-up">
             <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
             <h3 className="text-2xl font-bold text-white mb-2">HOÀ PHIẾU</h3>
             <p className="text-slate-400">Không có ai bị loại trong vòng này!</p>
           </Card>
         ) : (
-          <div className="w-full relative">
+          <div className="w-full relative min-h-[350px]">
             {/* Suspense State */}
             <Card className={`absolute inset-0 w-full bg-slate-900 border-red-500/30 p-8 text-center shadow-2xl shadow-red-500/10 transition-all duration-1000 flex flex-col items-center justify-center ${isRevealing ? 'opacity-100 z-10 scale-100' : 'opacity-0 -z-10 scale-95'}`}>
               <div className="animate-pulse flex flex-col items-center">

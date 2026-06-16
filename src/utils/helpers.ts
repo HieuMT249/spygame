@@ -68,9 +68,10 @@ export function getMostVotedPlayer(
     (p) => (voteCounts.get(p.id) ?? 0) === maxVotes
   );
 
-  // Break ties randomly
-  const randomIndex = Math.floor(Math.random() * topPlayers.length);
-  return topPlayers[randomIndex];
+  // Nếu có nhiều hơn 1 người cùng số phiếu cao nhất → hoà, không loại ai
+  if (topPlayers.length > 1) return undefined;
+
+  return topPlayers[0];
 }
 
 // ── Display helpers ──────────────────────────────────────────────────────────

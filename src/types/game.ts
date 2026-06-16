@@ -39,6 +39,7 @@ export interface Room {
   createdAt: number;
   winner: GameWinner | null;
   eliminatedPlayerId?: string;
+  turnOrder: string[]; // mảng playerId theo thứ tự random mỗi vòng
 }
 
 export interface Vote {

@@ -4,10 +4,12 @@ import { use } from 'react';
 import { GameProvider, useGameContext } from '@/contexts/GameContext';
 import { RoomLobby } from '@/components/lobby/RoomLobby';
 import { RevealCard } from '@/components/game/RevealCard';
-import { DiscussionScreen } from '@/components/game/DiscussionScreen';
 import { VotingScreen } from '@/components/game/VotingScreen';
 import { ResultScreen } from '@/components/game/ResultScreen';
+import { WhiteHatGuessScreen } from '@/components/game/WhiteHatGuessScreen';
+import { EndGameScreen } from '@/components/game/EndGameScreen';
 import { Ghost } from 'lucide-react';
+import Link from 'next/link';
 
 const GameRouter = () => {
   const { room, loading, error } = useGameContext();
@@ -26,28 +28,29 @@ const GameRouter = () => {
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 p-4 text-center">
         <div className="bg-red-500/10 p-6 rounded-2xl border border-red-500/20 max-w-md">
           <p className="text-red-400 mb-4 font-medium">Không tìm thấy phòng hoặc đã có lỗi xảy ra.</p>
-          <a href="/" className="text-blue-400 hover:text-blue-300 underline underline-offset-4">Quay lại trang chủ</a>
+          <Link href="/" className="text-blue-400 hover:text-blue-300 underline underline-offset-4">Quay lại trang chủ</Link>
         </div>
       </div>
     );
   }
 
-  // Route based on game status
   switch (room.status) {
     case 'waiting':
       return <RoomLobby />;
     case 'revealing':
       return <RevealCard />;
-    case 'discussion':
-      return <DiscussionScreen />;
     case 'voting':
       return <VotingScreen />;
     case 'result':
       return <ResultScreen />;
+    case 'whitehat-guess':
+      return <WhiteHatGuessScreen />;
+    case 'finished':
+      return <EndGameScreen />;
     default:
       return (
         <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400">
-          <p>Trạng thái: {room.status} (Sẽ được implement trong Phase 3)</p>
+          <p>Trạng thái không xác định: {room.status}</p>
         </div>
       );
   }

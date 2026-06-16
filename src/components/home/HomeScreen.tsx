@@ -17,12 +17,13 @@ export const HomeScreen = () => {
   const [roomCode, setRoomCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const hasRoomCode = roomCode.trim().length > 0;
+
   const handleCreateRoom = async () => {
     if (!name.trim()) {
       toast.error('Vui lòng nhập tên của bạn');
       return;
     }
-    
     try {
       setIsLoading(true);
       const { code, playerId } = await createRoom(name);
@@ -41,11 +42,10 @@ export const HomeScreen = () => {
       toast.error('Vui lòng nhập tên của bạn');
       return;
     }
-    if (!roomCode.trim() || roomCode.length !== 6) {
+    if (roomCode.length !== 6) {
       toast.error('Mã phòng phải có 6 ký tự');
       return;
     }
-
     try {
       setIsLoading(true);
       const code = roomCode.toUpperCase();
@@ -53,19 +53,19 @@ export const HomeScreen = () => {
       localStorage.setItem(`spy_game_player_${code}`, playerId);
       toast.success('Vào phòng thành công!');
       router.push(`/room/${code}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
-      toast.error(error.message || 'Không thể tham gia phòng');
+      const msg = error instanceof Error ? error.message : 'Không thể tham gia phòng';
+      toast.error(msg);
       setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorations */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/20 rounded-full blur-[100px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-red-500/20 rounded-full blur-[100px]" />
-      
+
       <div className="z-10 mb-8 text-center animate-fade-in-up">
         <div className="flex justify-center mb-4">
           <div className="relative">
@@ -78,9 +78,7 @@ export const HomeScreen = () => {
         <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 mb-2">
           AI LÀ GIÁN ĐIỆP
         </h1>
-        <p className="text-slate-400 font-medium tracking-wide">
-          Who is the Spy?
-        </p>
+        <p className="text-slate-400 font-medium tracking-wide">Who is the Spy?</p>
       </div>
 
       <Card className="w-full max-w-md bg-slate-900/50 backdrop-blur-xl border-slate-800 text-slate-100 z-10 shadow-2xl">
@@ -91,11 +89,13 @@ export const HomeScreen = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+
+          {/* Tên người chơi */}
           <div className="space-y-2">
             <Label htmlFor="name" className="text-slate-300">Tên người chơi</Label>
-            <Input 
-              id="name" 
-              placeholder="Ví dụ: Faker" 
+            <Input
+              id="name"
+              placeholder="Ví dụ: Minh Hiếu"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="bg-slate-950/50 border-slate-800 text-lg h-12 placeholder:text-slate-600 focus-visible:ring-blue-500"
@@ -103,46 +103,40 @@ export const HomeScreen = () => {
             />
           </div>
 
-          <div className="pt-2">
-            <Button 
-              onClick={handleCreateRoom} 
+          {/* Mã phòng */}
+          <div className="space-y-2">
+            <Label htmlFor="roomCode" className="text-slate-300">
+              Mã phòng <span className="text-slate-500 font-normal">(để trống nếu muốn tạo phòng mới)</span>
+            </Label>
+            <Input
+              id="roomCode"
+              placeholder="ABCDEF"
+              value={roomCode}
+              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+              className="bg-slate-950/50 border-slate-800 text-lg h-12 text-center tracking-widest uppercase placeholder:text-slate-600 focus-visible:ring-slate-400"
+              maxLength={6}
+            />
+          </div>
+
+          {/* Nút action — chỉ hiện 1 trong 2 */}
+          {hasRoomCode ? (
+            <Button
+              onClick={handleJoinRoom}
+              disabled={isLoading || roomCode.length !== 6}
+              className="w-full h-12 text-lg font-semibold bg-slate-700 hover:bg-slate-600 text-white"
+            >
+              Tham Gia Phòng
+            </Button>
+          ) : (
+            <Button
+              onClick={handleCreateRoom}
               disabled={isLoading}
               className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-500/25"
             >
               Tạo Phòng Mới
             </Button>
-          </div>
+          )}
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-slate-800" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-slate-900 px-2 text-slate-500">Hoặc</span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="roomCode" className="text-slate-300">Mã phòng (6 ký tự)</Label>
-            <div className="flex gap-2">
-              <Input 
-                id="roomCode" 
-                placeholder="ABCDEF" 
-                value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                className="bg-slate-950/50 border-slate-800 text-lg h-12 text-center tracking-widest uppercase placeholder:text-slate-600 focus-visible:ring-slate-400"
-                maxLength={6}
-              />
-              <Button 
-                onClick={handleJoinRoom} 
-                disabled={isLoading || roomCode.length !== 6}
-                variant="secondary"
-                className="h-12 px-8 font-semibold bg-slate-800 text-slate-100 hover:bg-slate-700"
-              >
-                Tham Gia
-              </Button>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

@@ -32,6 +32,11 @@ export async function getVotesForRound(
   );
 }
 
+export async function clearAllVotes(roomId: string): Promise<void> {
+  const snapshot = await getDocs(votesCollection(roomId));
+  await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+}
+
 export async function clearRoundVotes(
   roomId: string,
   round: number
