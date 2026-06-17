@@ -199,7 +199,7 @@ export const HomeScreen = () => {
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-red-500/20 rounded-full blur-[100px]" />
 
         {/* Logo */}
-        <div className="z-10 mb-4 text-center animate-fade-in-up">
+        <div className="z-10 mb-2 text-center animate-fade-in-up">
           <div className="flex justify-center">
             <div className="relative">
               {/* <Ghost className="w-16 h-16 text-slate-100" />
@@ -209,9 +209,14 @@ export const HomeScreen = () => {
               <Image alt={"logo"} src={images.logo} className="w-38 h-38"/>
             </div>
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 mb-2">
-            AI LÀ GIÁN ĐIỆP
-          </h1>
+          <div className="flex">
+            <h1 className="text-3xl md:text-4xl font-black mr-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-sky-500-300 to-green-300 mb-2">
+              AI LÀ 
+            </h1> 
+            <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-red-300 to-orange-300 mb-2">
+               GIÁN ĐIỆP
+            </h1>
+          </div>
           <p className="text-slate-400 font-medium tracking-wide">Who is the Spy?</p>
         </div>
 
@@ -266,7 +271,7 @@ export const HomeScreen = () => {
               <Button
                 onClick={handleJoinRoom}
                 disabled={isLoading || roomCode.length !== 6}
-                className="w-full h-12 text-lg font-semibold bg-slate-700 hover:bg-slate-600 text-white"
+                className="w-full h-12 text-lg font-semibold bg-green-600 hover:bg-green-500 text-white"
               >
                 Tham Gia Phòng
               </Button>
