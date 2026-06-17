@@ -25,6 +25,11 @@ export const getPlayers = async (roomId: string): Promise<Player[]> => {
   return snapshot.docs.map(doc => doc.data() as Player);
 };
 
+export const deletePlayer = async (roomId: string, playerId: string): Promise<void> => {
+  const playerRef = doc(db, "rooms", roomId, "players", playerId);
+  await deleteDoc(playerRef);
+};
+
 export const deleteAllPlayers = async (roomId: string): Promise<void> => {
   const playersRef = collection(db, "rooms", roomId, "players");
   const snapshot = await getDocs(playersRef);

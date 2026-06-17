@@ -5,7 +5,7 @@
 import type { GameWinner } from "@/types/game";
 
 import { createRoom, getRoomByCode, getRoomById, updateRoom, deleteRoomField } from "@/lib/firebase/rooms";
-import { addPlayer, updatePlayer, getPlayers, deleteAllPlayers } from "@/lib/firebase/players";
+import { addPlayer, updatePlayer, getPlayers, deleteAllPlayers, deletePlayer } from "@/lib/firebase/players";
 
 
 import {
@@ -166,6 +166,12 @@ export async function advanceGameAfterElimination(
   await deleteRoomField(roomId, "eliminatedPlayerId");
 
   return null;
+}
+
+// ── Leave Room ───────────────────────────────────────────────────────────────
+
+export async function leaveRoom(roomId: string, playerId: string): Promise<void> {
+  await deletePlayer(roomId, playerId);
 }
 
 // ── Disband Room ─────────────────────────────────────────────────────────────

@@ -3,12 +3,12 @@
 import { useGameContext } from '@/contexts/GameContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy, Users, Crown, Check, Link as LinkIcon, Trash2 } from 'lucide-react';
+import { Copy, Users, Crown, Check, Link as LinkIcon, Trash2, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { startGame, disbandRoom } from '@/services/roomService';
+import { startGame, disbandRoom, leaveRoom } from '@/services/roomService';
 
 export const RoomLobby = () => {
   const { room, players, isHost, currentPlayer } = useGameContext();
@@ -17,6 +17,7 @@ export const RoomLobby = () => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [isDisbanding, setIsDisbanding] = useState(false);
   const [confirmDisband, setConfirmDisband] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   if (!room) return null;
 
@@ -45,6 +46,19 @@ export const RoomLobby = () => {
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Lỗi khi bắt đầu game';
       toast.error(msg);
+    }
+  };
+
+  const handleLeave = async () => {
+    if (!currentPlayer) return;
+    try {
+      setIsLeaving(true);
+      await leaveRoom(room.id, currentPlayer.id);
+      localStorage.removeItem(`spy_game_player_${room.code}`);
+      router.push('/');
+    } catch (error) {
+      toast.error('Lỗi khi rời phòng');
+      setIsLeaving(false);
     }
   };
 
@@ -190,11 +204,22 @@ export const RoomLobby = () => {
             </Button>
           </div>
         ) : (
-          <div className="text-center p-4 rounded-xl bg-slate-900 border border-slate-800">
-            <p className="text-slate-400 flex items-center justify-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-              Đang chờ chủ phòng bắt đầu...
-            </p>
+          <div className="flex flex-col gap-3">
+            <div className="text-center p-4 rounded-xl bg-slate-900 border border-slate-800">
+              <p className="text-slate-400 flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                Đang chờ chủ phòng bắt đầu...
+              </p>
+            </div>
+            <Button
+              onClick={handleLeave}
+              disabled={isLeaving}
+              variant="ghost"
+              className="w-full h-10 text-sm font-medium text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Rời Phòng
+            </Button>
           </div>
         )}
       </div>
