@@ -104,7 +104,7 @@ export const RevealCard = () => {
               <div className="space-y-2 text-center mt-auto w-full">
                 <p className="text-sm uppercase tracking-widest text-slate-300 font-semibold">{getRoleName()}</p>
                 <div className="bg-slate-950/50 rounded-xl py-4 px-6 border border-white/10">
-                  <p className="text-2xl md:text-3xl font-black text-white truncate" title={getWord()}>
+                  <p className="text-2xl md:text-3xl font-black text-white" title={getWord()}>
                     {getWord()}
                   </p>
                 </div>

@@ -18,25 +18,14 @@ export const VotingScreen = () => {
   const [hasVoted, setHasVoted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!room || !currentPlayer) return null;
-
-  const alivePlayers = players.filter(p => p.alive);
-  const amIAlive = currentPlayer.alive;
-  const isAllVoted = votes.length === alivePlayers.length;
-
-  // Thứ tự random từ room.turnOrder
-  const turnOrder: string[] = room.turnOrder ?? [];
-  const orderedPlayers = turnOrder
-    .map(id => alivePlayers.find(p => p.id === id))
-    .filter(Boolean) as typeof alivePlayers;
-  // Fallback nếu turnOrder chưa sync
-  const displayPlayers = orderedPlayers.length > 0 ? orderedPlayers : alivePlayers;
+  // ── Tất cả hooks PHẢI nằm trước early return ──────────────────────────────
 
   useEffect(() => {
+    if (!currentPlayer) return;
     setHasVoted(votes.some(v => v.voterId === currentPlayer.id));
-  }, [votes, currentPlayer.id]);
+  }, [votes, currentPlayer]);
 
-  // Reset selected khi votes bị xóa (hoà phiếu → vote lại)
+  // Reset khi hoà phiếu → votes bị xóa
   useEffect(() => {
     if (votes.length === 0) {
       setHasVoted(false);
@@ -44,6 +33,39 @@ export const VotingScreen = () => {
       setIsSubmitting(false);
     }
   }, [votes.length]);
+
+  // Auto xử lý khi đủ phiếu (Host only)
+  useEffect(() => {
+    if (!room || !isHost || votes.length === 0 || room.status !== 'voting') return;
+    const alivePlayers = players.filter(p => p.alive);
+    if (votes.length < alivePlayers.length) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const { eliminatedPlayer } = await processVotes(room.id, room.currentRound);
+        if (!eliminatedPlayer) {
+          toast.warning('Hoà phiếu! Bỏ phiếu lại.');
+        }
+      } catch {
+        toast.error('Lỗi khi xử lý kết quả');
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHost, votes.length, players.length, room?.status, room?.currentRound]);
+
+  // ── Early return sau tất cả hooks ─────────────────────────────────────────
+
+  if (!room || !currentPlayer) return null;
+
+  const alivePlayers = players.filter(p => p.alive);
+  const amIAlive = currentPlayer.alive;
+  const isAllVoted = votes.length === alivePlayers.length;
+  const turnOrder: string[] = room.turnOrder ?? [];
+  const orderedPlayers = turnOrder
+    .map(id => alivePlayers.find(p => p.id === id))
+    .filter(Boolean) as typeof alivePlayers;
+  const displayPlayers = orderedPlayers.length > 0 ? orderedPlayers : alivePlayers;
 
   const handleVote = async () => {
     if (!selectedPlayerId) return;
@@ -61,29 +83,6 @@ export const VotingScreen = () => {
       setIsSubmitting(false);
     }
   };
-
-  const handleProcessResult = async () => {
-    try {
-      const { eliminatedPlayer } = await processVotes(room.id, room.currentRound);
-      if (!eliminatedPlayer) {
-        // Hoà phiếu — votes đã bị xóa, UI tự reset qua useEffect
-        toast.warning('Hoà phiếu! Bỏ phiếu lại.');
-      }
-    } catch {
-      toast.error('Lỗi khi xử lý kết quả');
-    }
-  };
-
-  // Auto xử lý khi đủ phiếu (Host only)
-  useEffect(() => {
-    if (isHost && isAllVoted && votes.length > 0 && room.status === 'voting') {
-      const timer = setTimeout(() => {
-        handleProcessResult();
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHost, isAllVoted, votes.length, room.status, room.currentRound]);
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col p-4 md:p-8 max-w-4xl mx-auto">
@@ -115,7 +114,7 @@ export const VotingScreen = () => {
                     : 'bg-slate-800 border-slate-700 text-slate-300'
                 }`}>
                   <span className="text-slate-500 text-xs font-mono">{idx + 1}.</span>
-                  {p.name}{isMe && ' (Bạn)'}
+                  <span className="truncate max-w-[80px]">{p.name}{isMe && ' (Bạn)'}</span>
                 </div>
               );
             })}
@@ -163,8 +162,8 @@ export const VotingScreen = () => {
                       {player.name.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="font-semibold text-slate-200">{player.name}</p>
+                  <div className="w-full">
+                    <p className="font-semibold text-slate-200 truncate">{player.name}</p>
                     {isMe && <p className="text-xs text-blue-400 mt-1">(Bạn)</p>}
                   </div>
                   <div className="absolute top-2 right-2">

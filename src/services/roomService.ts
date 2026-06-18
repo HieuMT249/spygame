@@ -26,6 +26,8 @@ export async function createNewRoom(
   hostName: string
 ): Promise<{ roomCode: string; playerId: string }> {
   const hostId = crypto.randomUUID();
+  if (!hostName.trim()) throw new Error("Tên không được để trống.");
+  if (hostName.trim().length > 30) throw new Error("Tên tối đa 30 ký tự.");
   const code = await createRoom(hostId);
 
   const room = await getRoomByCode(code);
@@ -54,6 +56,14 @@ export async function joinExistingRoom(
 
   if (!room) throw new Error("Không tìm thấy phòng với mã này.");
   if (room.status !== "waiting") throw new Error("Phòng đã bắt đầu trò chơi. Không thể tham gia.");
+  if (!playerName.trim()) throw new Error("Tên không được để trống.");
+  if (playerName.trim().length > 30) throw new Error("Tên tối đa 30 ký tự.");
+
+  const existingPlayers = await getPlayers(room.id);
+  const nameTaken = existingPlayers.some(
+    p => p.name.trim().toLowerCase() === playerName.trim().toLowerCase()
+  );
+  if (nameTaken) throw new Error(`Tên "${playerName.trim()}" đã có người dùng trong phòng này.`);
 
   const playerId = crypto.randomUUID();
   await addPlayer(room.id, {

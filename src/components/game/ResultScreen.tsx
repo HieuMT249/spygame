@@ -85,13 +85,13 @@ export const ResultScreen = () => {
             </Card>
 
             {/* Reveal State */}
-            <Card className={`w-full bg-slate-900 border-slate-700 p-8 text-center shadow-2xl transition-all duration-1000 flex flex-col items-center justify-center ${!isRevealing ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}>
+            <Card className={`w-full min-w-0 bg-slate-900 border-slate-700 p-8 text-center shadow-2xl transition-all duration-1000 flex flex-col items-center justify-center ${!isRevealing ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}>
               <Avatar className="h-24 w-24 border-4 border-slate-800 mb-6 mx-auto">
                 <AvatarFallback className="bg-slate-800 text-slate-300 text-2xl">
                   {eliminatedPlayer.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <h3 className="text-3xl font-black text-white mb-6">{eliminatedPlayer.name}</h3>
+              <h3 className="text-3xl font-black text-white mb-6 truncate">{eliminatedPlayer.name}</h3>
               
               <div className="space-y-4 w-full">
                 <p className="text-slate-400 font-medium uppercase tracking-widest text-sm">Vai trò thật sự</p>

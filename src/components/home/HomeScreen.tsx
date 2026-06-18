@@ -159,6 +159,7 @@ export const HomeScreen = () => {
 
   const handleCreateRoom = async () => {
     if (!name.trim()) { toast.error('Vui lòng nhập tên của bạn'); return; }
+    if (name.trim().length > 30) { toast.error('Tên tối đa 30 ký tự. Vui lòng thử lại!'); return; }
     try {
       setIsLoading(true);
       const { code, playerId } = await createRoom(name);
@@ -174,6 +175,7 @@ export const HomeScreen = () => {
 
   const handleJoinRoom = async () => {
     if (!name.trim()) { toast.error('Vui lòng nhập tên của bạn'); return; }
+    if (name.trim().length > 30) { toast.error('Tên tối đa 30 ký tự. Vui lòng thử lại!'); return; }
     if (roomCode.length !== 6) { toast.error('Mã phòng phải có 6 ký tự'); return; }
     try {
       setIsLoading(true);
@@ -248,7 +250,6 @@ export const HomeScreen = () => {
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (hasRoomCode ? handleJoinRoom() : handleCreateRoom())}
                 className="bg-slate-950/50 border-slate-800 text-lg h-12 placeholder:text-slate-600 focus-visible:ring-blue-500"
-                maxLength={15}
               />
             </div>
 
